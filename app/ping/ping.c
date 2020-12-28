@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
+#include <assert.h>
 
 #define EXIT_FAILURE 1
 
@@ -35,15 +36,28 @@ struct socketaddr_in {
   uint16_t sin_port;
   struct in_addr sin_addr;
   uint8_t padding[8];
-}
+};
 
-void Print(const char* s) {
-  write(1, s, strlen(s));
-}
 
 /**
  * functions
  **/
+void Print(const char* s) {
+  write(1, s, strlen(s));
+}
+
+uint8_t StrToByte(const char* s, const char** next) {
+  uint32_t v = 0;
+  while ('0' <= *s && *s <= '9') {
+    v = v * 10 + *s - '0';
+    s++;
+  }
+  if (next) {
+    *next = s;
+  }
+  return v;
+}
+
 in_addr_t MakeIPv4AddrFromString(const char* s) {
   // "a.b.c.d" -> in_addr_t (=uint32_t)
   uint8_t buf[4];
@@ -83,6 +97,9 @@ int main(int argc, char**argv) {
     exit(EXIT_FAILURE);
   }
 
+  char* ip_addr_s = argv[1];
+
+  // open socket
   int soc = socket(AF_INET, SOCK_DGRAM, PROT_ICMP);
 
   struct ICMPMessage icmp;
@@ -92,7 +109,14 @@ int main(int argc, char**argv) {
 
   struct socketaddr_in addr;
   addr.sin_family = AF_INET;
-//  addr.sin_addr.s_addr ;
+  addr.sin_addr.s_addr = MakeIPv4AddrFromString(ip_addr_s);
+
+  int n = sendto(soc, &icmp, sizeof(icmp), 0,
+                 (struct sockaddr*) &addr, sizeof(addr));
+
+
+  printf("soc: %d / n: %d", soc, n);
 
 }
+
 
