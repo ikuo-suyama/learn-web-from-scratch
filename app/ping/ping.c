@@ -150,6 +150,9 @@ int main(int argc, char** argv) {
   }
   printf("\n");
 
+  // if received > 8, possibly received ip packets
+  // https://blog.benjojo.co.uk/post/linux-icmp-type-69
+
   // struct ICMPMessage* recv_icmp = (struct ICMPMessage*)(recv_buf);
   struct ICMPMessage recv_icmp;
   memcpy(&recv_icmp, recv_buf + 20, 8);
