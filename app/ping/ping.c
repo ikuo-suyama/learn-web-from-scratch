@@ -45,8 +45,6 @@ struct socketaddr_in {
 /**
  * functions
  **/
-void Print(const char* s) { write(1, s, strlen(s)); }
-
 uint8_t StrToByte(const char* s, const char** next) {
   uint32_t v = 0;
   while ('0' <= *s && *s <= '9') {
@@ -90,13 +88,14 @@ uint16_t CalcChecksum(void* buf, size_t start, size_t end) {
  **/
 int main(int argc, char** argv) {
   if (argc != 2) {
-    Print("Usage: ");
-    Print(argv[0]);
-    Print(" <ip addr>\n");
+    printf("Usage: ");
+    printf("%s", argv[0]);
+    printf(" <ip addr>\n");
     exit(EXIT_FAILURE);
   }
 
   char* ip_addr_s = argv[1];
+  printf("PING %s :\n", ip_addr_s);
 
   // open socket
   int soc = socket(AF_INET, SOCK_DGRAM, PROT_ICMP);
@@ -109,8 +108,16 @@ int main(int argc, char** argv) {
   memset(&icmp, 0, sizeof(icmp));
   icmp.type = 8; /* Echo Request */
   icmp.checksum = CalcChecksum(&icmp, 0, sizeof(icmp));
+  printf("icmp: len=%ld | %d %d %d %d %d\n", 
+         sizeof(icmp),
+         icmp.type,
+         icmp.code,
+         icmp.checksum,
+         icmp.identifier,
+         icmp.sequence);
 
   struct socketaddr_in addr;
+  memset(&addr, 0, sizeof(addr));
   addr.sin_family = AF_INET;
   addr.sin_addr.s_addr = MakeIPv4AddrFromString(ip_addr_s);
 
@@ -131,5 +138,20 @@ int main(int argc, char** argv) {
     printf("[sent packet failed] errno=%d\n", errno);
   }
 
-  printf("recvfrom returned: %d", recv_len);
+  printf("recvfrom returned: %d\n", recv_len);
+
+  printf("ICMP packet received from %s\n", ip_addr_s);
+
+  for (int i = 0; i < recv_len; i++) {
+    printf("%02x ", recv_buf[i]);
+    if (i != 0 && i % 8 == 0) {
+      printf("\n");
+    }
+  }
+  printf("\n");
+
+  struct ICMPMessage* recv_icmp = (struct ICMPMessage*)(recv_buf);
+  printf("checksum: (sent)%d (recv)%d\n", icmp.checksum, recv_icmp->checksum);
+
+  printf("type: (sent)%d (recv)%d\n", icmp.type, recv_icmp->type);
 }
