@@ -1,3 +1,5 @@
+#include <stdlib.h>
+
 struct __attribute__((packed)) ICMPMessage {
   uint8_t type;
   uint8_t code;
@@ -19,7 +21,7 @@ int main(int argc, char**argv) {
     Print(" <ip addr>\n");
     exit(EXIT_FAILURE);
   }
-  Print(argv[0])
-  Print(argv[1])
+  Print(argv[0]);
+  Print(argv[1]);
 }
 
