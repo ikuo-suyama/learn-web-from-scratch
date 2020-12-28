@@ -150,8 +150,11 @@ int main(int argc, char** argv) {
   }
   printf("\n");
 
-  struct ICMPMessage* recv_icmp = (struct ICMPMessage*)(recv_buf);
-  printf("checksum: (sent)%d (recv)%d\n", icmp.checksum, recv_icmp->checksum);
+  // struct ICMPMessage* recv_icmp = (struct ICMPMessage*)(recv_buf);
+  struct ICMPMessage recv_icmp;
+  memcpy(&recv_icmp, recv_buf + 20, 8);
 
-  printf("type: (sent)%d (recv)%d\n", icmp.type, recv_icmp->type);
+  printf("checksum: (sent)%d (recv)%d\n", icmp.checksum, recv_icmp.checksum);
+
+  printf("type: (sent)%d (recv)%d\n", icmp.type, recv_icmp.type);
 }
