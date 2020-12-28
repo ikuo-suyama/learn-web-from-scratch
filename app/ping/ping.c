@@ -1,16 +1,20 @@
-#include <stdlib.h>
-#include <stdint.h>
-#include <string.h>
-#include <stdio.h>
 #include <assert.h>
+#include <errno.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/socket.h>  // socket
+#include <unistd.h>      // write
 
 #define EXIT_FAILURE 1
-
-#define AF_INET 2 // Internet IP protocol
-
-#define SOCK_STREAM 1 // for TCP
-#define SOCK_DGRAM 2 // for UDP
 #define PROT_ICMP 1
+
+#ifndef AF_INET
+#define AF_INET 2      // Internet IP protocol
+#define SOCK_STREAM 1  // for TCP
+#define SOCK_DGRAM 2   // for UDP
+#endif
 
 /**
  * type and structs
@@ -38,13 +42,10 @@ struct socketaddr_in {
   uint8_t padding[8];
 };
 
-
 /**
  * functions
  **/
-void Print(const char* s) {
-  write(1, s, strlen(s));
-}
+void Print(const char* s) { write(1, s, strlen(s)); }
 
 uint8_t StrToByte(const char* s, const char** next) {
   uint32_t v = 0;
@@ -63,8 +64,7 @@ in_addr_t MakeIPv4AddrFromString(const char* s) {
   uint8_t buf[4];
   for (int i = 0;; i++) {
     buf[i] = StrToByte(s, &s);
-    if (i == 3)
-      break;
+    if (i == 3) break;
     assert(*s == '.');
     s++;
   }
@@ -85,11 +85,10 @@ uint16_t CalcChecksum(void* buf, size_t start, size_t end) {
   return ((sum >> 8) & 0xFF) | ((sum & 0xFF) << 8);
 }
 
-
 /**
- * main 
+ * main
  **/
-int main(int argc, char**argv) {
+int main(int argc, char** argv) {
   if (argc != 2) {
     Print("Usage: ");
     Print(argv[0]);
@@ -101,6 +100,10 @@ int main(int argc, char**argv) {
 
   // open socket
   int soc = socket(AF_INET, SOCK_DGRAM, PROT_ICMP);
+  if (soc == -1) {
+    printf("[open socket failed] soc: %d / errno=%d\n", soc, errno);
+    exit(EXIT_FAILURE);
+  }
 
   struct ICMPMessage icmp;
   memset(&icmp, 0, sizeof(icmp));
@@ -111,12 +114,22 @@ int main(int argc, char**argv) {
   addr.sin_family = AF_INET;
   addr.sin_addr.s_addr = MakeIPv4AddrFromString(ip_addr_s);
 
-  int n = sendto(soc, &icmp, sizeof(icmp), 0,
-                 (struct sockaddr*) &addr, sizeof(addr));
+  int n = sendto(soc, &icmp, sizeof(icmp), 0, (struct sockaddr*)&addr,
+                 sizeof(addr));
+  if (n < 1) {
+    printf("[sent packet failed] errno=%d\n", errno);
+    exit(EXIT_FAILURE);
+  }
 
+  printf("soc: %d, n: %d\n", soc, n);
 
-  printf("soc: %d / n: %d", soc, n);
+  uint8_t recv_buf[256];
+  socklen_t addr_size;
+  int recv_len = recvfrom(soc, &recv_buf, sizeof(recv_buf), 0,
+                          (struct sockaddr*)&addr, &addr_size);
+  if (recv_len < 1) {
+    printf("[sent packet failed] errno=%d\n", errno);
+  }
 
+  printf("recvfrom returned: %d", recv_len);
 }
-
-
